@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>1on1 learning data set</title>
+
+<!--    <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>-->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+            integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Droid+Sans:400,700" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/baguettebox.js/1.8.1/baguetteBox.min.css">
+    <link rel="stylesheet" href="../css/fluid-gallery.css">
+
+    <script>
+
+        const basicImgUrl='https://s3.eu-central-1.wasabisys.com/web-utils/pose-data-viewer/img';
+        const basicDataUrl='https://s3.eu-central-1.wasabisys.com/web-utils/pose-data-viewer/data';
+        // const basicImgUrl='../img';
+        // const basicDataUrl='../data';
+        const startImgCount = 105;
+        const maxImgCount = 2300;
+        var loadCounter = 0;
+        const zoomedImgSize = '724px';
+        const defaultScale = 724/256;
+        const pointCount = 21;
+        var POINT_STATE = {
+            NOTHING: { value: 0 },
+            SELECTED: { value: 1 },
+            MISSING: { value: 2 },
+            SELECTED_MISSING: { value: 3 },
+        };
+
+        const pointColors = [
+            { id: 0, color: '#ff0033' },
+            { id: 1, color: '#aa6600' },
+            { id: 2, color: '#339900' },
+            { id: 3, color: '#ff9900' },
+            { id: 4, color: '#009900' },
+            { id: 5, color: '#aaaa00' },
+            { id: 6, color: '#009933' },
+            { id: 7, color: '#009966' },
+            { id: 8, color: '#003399' },
+            { id: 9, color: '#009999' },
+            { id: 10, color: '#000099' },
+            { id: 11, color: '#006699' },
+            { id: 12, color: '#330099' },
+
+            { id: 13, color: '#ffdd00' },
+            { id: 14, color: '#00ee00' },
+            { id: 15, color: '#aaaa00' },
+            { id: 16, color: '#009933' },
+            { id: 17, color: '#88cc99' },
+            { id: 18, color: '#3388ff' },
+            { id: 19, color: '#00cc99' },
+            { id: 20, color: '#3300ff' },
+
+        ];
+
+        function cardBody(url, no){
+            return `            <div class="col-sm-6 col-md-4">
+                <a class="lightbox" href="${url}">
+
+                    <img src="${url}" alt="Bridge">
+
+                    <div class="bottom-left">#${no}.png</div>
+                </a>
+            </div>
+            `
+        }
+
+        function pushPoint(_data, id, x, y){
+            console.log(`push point, id=${id}`);
+            _data.push(id);
+            _data.push(x);
+            _data.push(y);
+        }
+
+        function convert39to21(_data){
+            var pointId = 0;
+            var pointIdforModel13 = 0;
+            var result = [];
+            for (var i = 0; i < _data.length; i++) {
+                var x = _data[i];
+                i++;//points to y
+                var y = _data[i];
+                i++;//points to p
+                // if(true){
+                if(x!=0 && y!=0){
+                    console.log(`point id = ${pointId}`);
+                    switch (pointId) {
+                        case 0:
+                            pushPoint(result, 0, x, y);
+                            break;
+                        case 7:
+                            pushPoint(result, 13, x, y);
+                            break;
+                        case 8:
+                            pushPoint(result, 14, x, y);
+                            break;
+                        case 11:
+                            pushPoint(result, 1, x, y);
+                            break;
+                        case 12:
+                            pushPoint(result, 2, x, y);
+                            break;
+                        case 13:
+                            pushPoint(result, 3, x, y);
+                            break;
+                        case 14:
+                            pushPoint(result, 4, x, y);
+                            break;
+                        case 15:
+                            pushPoint(result, 5, x, y);
+                            break;
+                        case 16:
+                            pushPoint(result, 6, x, y);
+                            break;
+                        case 23:
+                            pushPoint(result, 7, x, y);
+                            break;
+                        case 24:
+                            pushPoint(result, 8, x, y);
+                            break;
+                        case 25:
+                            pushPoint(result, 9, x, y);
+                            break;
+                        case 26:
+                            pushPoint(result, 10, x, y);
+                            break;
+                        case 27:
+                            pushPoint(result, 11, x, y);
+                            break;
+                        case 28:
+                            pushPoint(result, 12, x, y);
+                            break;
+
+                        case 7:
+                            pushPoint(result, 13, x, y);
+                            break;
+                        case 8:
+                            pushPoint(result, 14, x, y);
+                            break;
+                        case 21:
+                            pushPoint(result, 15, x, y);
+                            break;
+                        case 22:
+                            pushPoint(result, 16, x, y);
+                            break;
+                        case 29:
+                            pushPoint(result, 17, x, y);
+                            break;
+                        case 30:
+                            pushPoint(result, 18, x, y);
+                            break;
+                        case 31:
+                            pushPoint(result, 19, x, y);
+                            break;
+                        case 32:
+                            pushPoint(result, 20, x, y);
+                            break;
+                    }
+                }
+
+                pointId++;
+            }
+            return result;
+        }
+
+        function drawPoint(ctx, x, y, color, stroke, state) {
+            const radius = 5;
+
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.lineWidth = 1;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = stroke;
+
+            if (state === POINT_STATE.MISSING || state === POINT_STATE.SELECTED_MISSING) {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "#ff3333";
+                ctx.fillStyle = "#ffffff";
+            }
+
+            ctx.fill();
+            ctx.stroke();
+
+            if (typeof state !== "undefined") {
+                if (state === POINT_STATE.SELECTED || state === POINT_STATE.SELECTED_MISSING) {
+                    //                    ctx.strokeStyle = "#ff2222";
+                    //                    ctx.fillStyle = "#ff2222";
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(5000, y);
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, 5000);
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.stroke();
+                }
+            }
+
+        }
+
+        function drawSkeleton(canvas, data, scale) {
+            w = 724;//$(img)[0].width * scale;
+            h = 724;//$(img)[0].height * scale;
+//            $(canvas)[0].width = w;
+//            $(canvas)[0].height = h;
+
+            points = [];
+            for (var i = 0; i < pointCount; i++) {
+                var obj = new Object();
+                obj.id = i;
+                points.push(obj);
+            }
+
+            var ctx = $(canvas)[0].getContext("2d");
+//            ctx.drawImage($(img)[0], 0, 0, $('#canvas')[0].width, $('#canvas')[0].height);
+            ctx.beginPath();
+
+            for (var i = 0; i < data.length; i++) {
+                var id = data[i];
+                i++;
+                if (i >= data.length) break;
+                var x = data[i];
+                i++;
+                if (i >= data.length) break;
+                var y = data[i];
+
+                points[id].x = x;
+                points[id].y = y;
+
+                state = POINT_STATE.NOTHING;
+                //if (id == dummySelectedId) state = POINT_STATE.SELECTED;
+                drawPoint(ctx, x * w, y * h, pointColors[id].color, '#ffffff', state);
+            }
+        }
+
+        function zoomedBody(element){
+            $(element).css("width", zoomedImgSize);
+            $(element).css("height", zoomedImgSize);
+            $(element).css("position","absolute");
+            $(element).css("padding","0");
+            $(element).css("margin","auto");
+            $(element).css("display","block");
+            $(element).css("top","0");
+            $(element).css("bottom","0");
+            $(element).css("left","0");
+            $(element).css("right","0");
+
+            var imgName = element.src.split('/').pop();
+            var imgId = imgName.split('.')[0];
+            var canvasId = `canvas-${imgId}`;
+
+            var bodyRect = document.body.getBoundingClientRect(),
+                elemRect = element.getBoundingClientRect(),
+
+            rect = element.getBoundingClientRect();
+            var offsetX= rect.left + window.scrollX;
+            var offsetY= rect.top - window.scrollY;
+
+            if(element.parentElement.childElementCount <=1) {
+                $(element.parentElement).append(`
+                                    <canvas id="${canvasId}" style="border:0px solid #d3d3d3;
+                                    width:${zoomedImgSize};
+                                    height:${zoomedImgSize};
+                                    position:absolute;
+                                    padding: 0;
+                                    margin: auto;
+                                    display: block;
+                                    top: 0;
+                                    bottom: 0;
+                                    left: 0;
+                                    right: 0;
+                                    "
+                                    width=${zoomedImgSize};
+                                    height=${zoomedImgSize};
+                                    >
+                                        Your browser does not support the canvas element.
+                                    </canvas>
+
+                `);
+
+                var dataPath = $('#data-path')[0].value;
+                var url = `${dataPath}/${imgId}.json`;
+                var jqXhr = $.ajax(url, {
+                    method: 'GET',
+                    contentType: 'text/plain'
+                })
+                    .done(function(response, status, jqXhr) {
+                        console.log(jqXhr.canvasId+'>>>'+this.url);
+
+                        var data = [];
+                        stData = jqXhr.responseText;
+                        if(stData.indexOf(']]')!=-1){
+                            //input data file contains image file name
+                            var firstCommaPos = stData.indexOf(',');
+                            stData = stData.substring(firstCommaPos+1, stData.length-1);
+                        }
+                        var dataIn = JSON.parse(stData);//(event.target.result);
+                        data = convert39to21(dataIn);
+                        drawSkeleton(`#${canvasId}`, data, defaultScale);
+                    }).fail(function(jqXhr, status) {
+                        if(status != 'parsererror'){
+                            console.log(jqXhr.canvasId+'>>> does not exist');
+                            return;
+                        }
+
+                        //normal model keypoints can not be parsed as JSON
+                        //valid data come with "parsererror" status
+                        var data = [];
+                        stData = jqXhr.responseText;
+                        if(stData.indexOf(']]')!=-1){
+                            //input data file contains image file name
+                            var firstCommaPos = stData.indexOf(',');
+                            stData = stData.substring(firstCommaPos+1, stData.length-1);
+                        }
+                        var dataIn = JSON.parse(stData);//(event.target.result);
+                        data = convert39to21(dataIn);
+                        drawSkeleton(`#${canvasId}`, data, defaultScale);
+
+                    });
+                jqXhr.canvasId = canvasId;
+
+                $(element.parentElement).append(`<p style="color:rgba(132, 132, 256, 1);
+                                    width:${zoomedImgSize};
+                                    height:${zoomedImgSize};
+                                    position:absolute;
+                                    padding: 0;
+                                    margin: auto;
+                                    display: block;
+                                    top: 0;
+                                    bottom: 0;
+                                    left: 0;
+                                    right: 0;
+                                    ">#${imgName}</p>`);
+            }
+
+        }
+
+        function galleryInit(){
+            var imgPath = $('#img-path')[0].value;
+            $("#wait-p").html($("#load-icon").html());
+            loadCounter = 0;
+
+            for (var i=startImgCount; i< maxImgCount; i++){
+                var url = `${imgPath}/${i}.png`;
+                var jqXhr = $.ajax(url, {
+                    method: 'GET',
+                })
+                    .done(function(response, status, jqXhr) {
+                        loadCounter++;
+                        if(loadCounter>=(maxImgCount - startImgCount)) $("#wait-p").html("");
+
+                        console.log(jqXhr.no+'>>>'+this.url);
+                        var element = $('#gallery-body').append(cardBody(this.url, jqXhr.no));
+                        baguetteBox.run('.tz-gallery');
+                    }).fail(function(jqXhr) {
+                        loadCounter++;
+                        if(loadCounter>=(maxImgCount - startImgCount)) $("#wait-p").html("");
+                        console.log(jqXhr.no+'>>> does not exist');
+                })
+                jqXhr.no = i;
+            }
+
+            $(document).on('click', function(){
+                setZoomedImage();
+            });
+        }
+
+        function refresh(){
+            $($('#gallery-body')[0]).empty();
+            galleryInit();
+        }
+
+        function setZoomedImage(){
+            $("figure[id^='baguetteBox-figure-'] > img").each(function(){
+                zoomedBody(this)
+                // $(this).css("width", "724px");
+                // if(this.parentElement.childElementCount <=1) {
+                //     $(this.parentElement).append(`<p style='color:white'>${this.src.split('/').pop()}</p>`);
+                // }
+
+            });
+        }
+
+    </script>
+
+</head>
+<body>
+
+<div class="container gallery-container">
+    <h3>Data marked with 21 points for 39-point model</h3>
+    <div>
+        <label for="img-path" style="
+            width: 70px;
+        ">Images</label>
+        <input type="text" id="img-path" name="imgpath" value="../img" style="
+            width: 400px;
+        ">
+        <button onclick="refresh()">⟳</button>
+        <text>../img/Resized/p1_e1__yv_95_129
+        </text>
+    </div>
+    <div>
+        <label for="data-path"style="
+            width: 70px;
+        ">Data</label>
+        <input type="text" id="data-path" name="datapath" value="../data" style="
+            width: 400px;
+        ">
+
+        <button onclick="refresh()">⟳</button>
+        <text>../data/p1_e1__yv_95_129_Resize</text>
+    </div>
+    <p id="wait-p"></p>
+
+    <div class="tz-gallery">
+
+        <div class="row" id="gallery-body">
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/baguettebox.js/1.8.1/baguetteBox.min.js"></script>
+<script>
+//    baguetteBox.run('.tz-gallery');
+
+    $(document).ready(function() {
+        galleryInit();
+    });
+
+</script>
+
+<div style="display:none">
+    <div id="load-icon">
+        <img src="data:image/gif;base64, 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" alt="Load" />
+    </div>
+</div>
+
+</body>
+</html>
+
+<!--$('#baguetteBox-figure-1').children[0].c-->
+<!--
+$$("figure[id^='baguetteBox-figure-'] > img")
+
+style="
+width: 724px;
+"
+-->
