@@ -245,7 +245,9 @@
 
         function zoomedBody(element){
             $(element).css("width", zoomedImgSize);
+            $(element).css("min-width", zoomedImgSize);
             $(element).css("height", zoomedImgSize);
+            $(element).css("min-height", zoomedImgSize);
             $(element).css("position","absolute");
             $(element).css("padding","0");
             $(element).css("margin","auto");
